@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define CHILD_TYPE_EMPTY 0
+#define CHILD_TYPE_LEFT 1
+#define CHILD_TYPE_RIGHT 2
+#define CHILD_TYPE_BOTH (CHILD_TYPE_LEFT | CHILD_TYPE_RIGHT)
+
 typedef struct _node
 {
 	int key;
@@ -15,6 +20,59 @@ typedef struct _bst
 {
 	Node * root;
 } BST;
+
+static void notifyChanged(Node * parent, Node * me, Node * proxy)
+{
+    Node ** pp = 0;
+    
+    if( !parent )
+    {
+        return;
+    }
+    
+    if( parent->left && parent->left == me )
+    {
+        pp = &(parent->left);
+    }
+    else
+    if( parent->right && parent->right == me )
+    {
+        pp = &(parent->right);
+    }
+    
+    if( pp )
+    {
+        *pp = proxy;
+    }
+}
+
+static void copyData(Node * n1, Node * n2)
+{
+    if( n1 && n2 )
+    {
+        n1->key = n2->key;
+    }
+}
+
+static int checkChildType(Node * node)
+{
+    int children = CHILD_TYPE_EMPTY;
+    
+    if( node )
+    {
+        if( node->left )
+        {
+            children += CHILD_TYPE_LEFT;
+        }
+        
+        if( node->right )
+        {
+            children += CHILD_TYPE_RIGHT;
+        }
+    }
+    
+    return children;
+}
 
 static BST * createEmptyTree()
 {
@@ -47,29 +105,40 @@ static void addNode(Node * parent, Node * node)
 {
 	Node ** pp = 0;
 
-	if( node->key < parent->key )
-	{
-		if( !parent->left )
-		{
-			pp = &(parent->left);
-		}
-		else
-		{
-			addNode(parent->left, node);
-		}
-	}
-	else
-	if( node->key > parent->key )
-	{
-		if( !parent->right )
-		{
-			pp = &(parent->right);
-		}
-		else
-		{
-			addNode(parent->right, node);
-		}
-	}
+    while( parent && !pp )
+    {
+        if( node->key < parent->key )
+        {
+            if( !parent->left )
+            {
+                pp = &(parent->left);
+            }
+            else
+            {
+                parent = parent->left;
+            }
+        }
+        else
+        if( node->key > parent->key )
+        {
+            if( !parent->right )
+            {
+                pp = &(parent->right);
+            }
+            else
+            {
+                parent = parent->right;
+            }
+        }
+        else
+        {
+            // duplicated
+            copyData(parent, node);
+            free(node);
+            
+            break;
+        }
+    }
 
 	if( pp )
 	{
@@ -96,27 +165,23 @@ static void add(BST * ptree, int key)
 
 static Node * findNode(Node * node, int key)
 {
-	if( node )
+	while( node && node->key != key )
 	{
 		if( node->key < key )
 		{
-			return findNode(node->right, key);
+            node = node->right;
 		}
 		else
 		if( node->key > key )
 		{
-			return findNode(node->left, key);
-		}
-		else
-		{
-			return node;
+            node = node->left;
 		}
 	}
 
-	return 0;
+	return node;
 }
 
-static Node * max(Node * node)
+static Node * findLargestNode(Node * node)
 {
 	while( node && node->right )
 	{
@@ -128,21 +193,7 @@ static Node * max(Node * node)
 
 static void removeNode(Node * node)
 {
-	if( node )
-	{
-		if( node->left )
-		{
-			node->key = node->left->key;
-			removeNode(node->left);
-			node->left = 0;
-		}
-		else
-		{
-			Node * parent = node->parent;
-			removeNode(node);
-			parent->left = 0;
-		}
-	}
+    
 }
 
 static void removeKey(BST * bst, int key)
@@ -151,7 +202,7 @@ static void removeKey(BST * bst, int key)
 
 	if( cursor )
 	{
-		Node * node = max(cursor->left);
+        removeNode(cursor);
 	}
 }
 
@@ -161,15 +212,15 @@ static void printNode(Node * node, int indent)
 
 	if( node )
 	{
-		printNode(node->right, indent + 1);
-
+        printNode(node->right, indent + 1);
+        
 		for( i = 0; i < indent; i++ )
 		{
-			printf("   ");
+			printf("    ");
 		}
 
 		printf("%2d\n", node->key);
-
+        
 		printNode(node->left, indent + 1);
 	}
 }
@@ -182,13 +233,24 @@ static void print(BST * ptree)
 	}
 }
 
+static int getKey()
+{
+    int key;
+    
+    printf(" : ");
+    scanf("%d", &key);
+    
+    return key;
+}
+
 int main()
 {
 	int i;
-	int key;
+    int key;
+
 	BST * b = createEmptyTree();
 
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	for( i = 0; i < 10; i++ )
 	{
@@ -196,13 +258,12 @@ int main()
 		add(b, r);
 	}
 
-	print(b);
-
-	printf(" : ");
-	scanf("%d", &key);
-
-	removeKey(b, key);
-	print(b);
+    print(b);
+    
+    key = getKey();
+    removeKey(b, key);
+    
+    print(b);
 
 	destroyTree(b);
 	return 0;

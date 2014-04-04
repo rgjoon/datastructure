@@ -145,7 +145,7 @@ static void removeNode(Node * node)
 	}
 }
 
-static void rm(BST * bst, int key)
+static void removeKey(BST * bst, int key)
 {
 	Node * cursor = findNode(bst->root, key);
 
@@ -201,7 +201,7 @@ int main()
 	printf(" : ");
 	scanf("%d", &key);
 
-	rm(b, key);
+	removeKey(b, key);
 	print(b);
 
 	destroyTree(b);

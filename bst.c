@@ -193,7 +193,30 @@ static Node * findLargestNode(Node * node)
 
 static void removeNode(Node * node)
 {
-    
+    int childType = checkChildType(node);
+
+    if( childType == CHILD_TYPE_EMPTY )
+    {
+    	notifyChanged(node->parent, node, 0);
+    	free(node);
+    }
+    else
+    if( childType == CHILD_TYPE_LEFT )
+    {
+    	notifyChanged(node->parent, node, node->left);
+    	free(node);
+    }
+    else
+    if( childType == CHILD_TYPE_RIGHT )
+    {
+    	notifyChanged(node->parent, node, node->right);
+    	free(node);
+    }
+    else
+    if( childType == CHILD_TYPE_BOTH )
+    {
+
+    }
 }
 
 static void removeKey(BST * bst, int key)
